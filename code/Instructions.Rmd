@@ -9,11 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-## Your assignment
-
+# Your assignment
 The goals for this assignment are to:
-
 - practice making maps with the various packages
 - think about composition and the grammar of graphics
 - critique various maps
@@ -22,15 +19,153 @@ _By the end of the assignment_ you should have several static maps displaying th
 
 # Task 1: Show me your ugly maps!!
 Find 2 examples of maps that you think are 'bad'. 
+
+![bad map numeber one](~/R/assignment-08-KirstenFuller/code/bad_maps/bad map 1.jpg)
+
+![bad map numero dos](~/R/assignment-08-KirstenFuller/code/bad_maps/bad map 2.jpeg)
+
+![bad map numero tres](~/R/assignment-08-KirstenFuller/code/bad_maps/bad map honorable mention.jpg)
+
 _Question 1_ Why are they bad? What might improve them? 
+
 _Question 2_ Rely on the Healy and Wilke texts to provide some structure to your answers.
 
 # Task 2: Load your libraries and build a dataframe
 You can choose whichever datasets you'd like from the past several months as the subject for your mapping. You'll need to use at least one tabular join, one spatial join, and one extraction to create the dataframe. Load the packages, the data, and make sure everything is projected here. Give me a sense for what you are hoping to map.
 
+# LOAD PACKAGES:
+```{r packages, include = FALSE}
+library(sf)
+library(terra)
+library(dplyr)
+library(pander)
+library(units)
+library(ggmap)
+library(cartogram)
+library(patchwork)
+library(tmap)
+library(viridis)
+```
+
+# LOAD DATA:
+```{r data}
+session18_data <- list.files('/opt/data/session16', full.names = TRUE)
+session18_data
+
+protected_areas <- st_read('/opt/data/session16/reg_pas.shp')
+mammal_raster <- terra::rast('/opt/data/session16/Mammals_total_richness.tif')
+land_val_raster <- terra::rast('/opt/data/session16/Regval.tif')
+pa_desig <- st_read('/opt/data/session04/regionalPAs1.shp')
+```
+
+# SPATIAL DEFINING:
+```{r crs}
+# check for valid geometry and make valid if necessary
+all(st_is_valid(protected_areas)) # FALSE
+protected_areas_val <- st_make_valid(protected_areas) # make it valid
+
+all(st_is_valid(pa_desig)) # FALSE
+pa_desig_val <- st_make_valid(pa_desig)
+
+# check crs of shapefile objects
+st_crs(protected_areas_val) # USA_Contiguous_Albers_Equal_Area_Conic_USGS_version 
+st_crs(pa_desig_val) # USA_Contiguous_Albers_Equal_Area_Conic_USGS_version 
+
+# check crs of raster objects
+crs(land_val_raster) # NAD83 / Conus Albers\ 
+crs(mammal_raster) # USA_Contiguous_Albers_Equal_Area_conic
+
+# REPROJECT RASTER:
+# I will have to reproject one of the rasters so that they are in the same projection.
+# check the extent to see which raster is larger, this will help us decide which raster to reproject.
+terra::ext(mammal_raster)
+terra::ext(land_val_raster)
+# mammal raster is larger than the land value raster. Since we want to reproject the raster with the smaller extent, we will reproject the land value raster.
+# reproject the land value raster to match the mammal raster
+land_val_ras_proj <- project(land_val_raster, mammal_raster)
+
+# check to see if they match now
+crs(mammal_raster) == crs(land_val_ras_proj) # TRUE, they do match! 
+
+# now we must transform the shapefiles to match the crs of the rasters
+pa_reg_val_trans <- st_transform(protected_areas_val, crs = crs(mammal_raster))
+pa_desig_val_trans <- st_transform(pa_desig_val, crs = crs(mammal_raster))
+```
+
+# CREATE SIMPLE PLOTS:
+```{r plots}
+# PLOT MAMMAL RAST:
+# plot to see if the raster and the shapefile line up
+plot(mammal_raster)
+plot(pa_reg_val_trans, add = TRUE) # they do line up
+
+# extract more information out of the data by catalyzing it
+mammal_ras_cat <- catalyze(mammal_raster)
+# plot it again to check it out
+plot(mammal_ras_cat)
+
+# looking at the above plots, we are only interested in [[2]]
+mammal_ras_cat <- mammal_ras_cat[[2]]
+# plot this again
+plot(mammal_ras_cat)
+
+
+# PLOT LAND VAL:
+# plot the land value raster over the mammal raster
+plot(mammal_ras_cat)
+plot(land_val_ras_proj, add = TRUE) 
+plot(pa_reg_val_trans, add = TRUE) # add the regions too, they all align.
+```
+
+# objects to use:
+pa_reg_val_trans
+pa_desig_val_trans
+land_val_ras_proj
+mammal_ras_cat
+
+# TABULAR JOIN:
+```{r tab join}
+# define the column names in pa_reg_val_trans that we want to replace with the columns from pa_desig_val_trans so they align.
+colnames(pa_reg_val_trans)[c(1, 6, 8, 10, 12, 22, 25)] <- colnames(pa_desig_val_trans)
+
+# define the states in the west in an object
+states <- c( "ID", "MT", "WY", "UT", "NV", "AZ", "NM", "CO" )
+
+# define the gap sts we want in an object
+GAP_sts <- c("1", "2", "3") 
+
+# join the pa_desig_trans and the pa_regions_trans objects together 
+pa_bind <- pa_reg_val_trans %>% 
+  dplyr::select(colnames(pa_desig_val_trans)) %>% 
+  bind_rows(pa_desig_val_trans, pa_reg_val_trans) %>%
+  filter(., State_Nm %in% states, GAP_Sts %in% GAP_sts) %>%
+  st_buffer(., 50000)
+```
+
 
 # Task 3: Build a map with Tmap
 Practice making a quick map with tmap. 
+
+```{r}
+west_states <- tigris::states(cb=TRUE) %>% 
+  filter(STUSPS %in% states)
+
+# make a plot with tmap of the states to start
+tmap::qtm(west_states, fill = "NAME") +
+  tm_text("NAME")
+
+# check the object classes
+class(west_states) # sf
+class(pa_bind) # sf
+
+# have to convert the pa_bind sf object and the west_states to spatvectors before we are able to crop them in terra
+pa_bind_vect <- as(pa_bind, "SpatVector")
+west_states_vect <- as(west_states, "SpatVector")
+
+# crop the mammal richness raster and the land value raster to the extent of the western states vector
+mam_rich_crop <- crop(mammal_ras_cat, west_states_vect)
+land_val_crop <- crop(land_val_ras_proj, west_states_vect)
+```
 
 
 # Task 4: Build a choropleth with ggplot
