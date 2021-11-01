@@ -24,8 +24,6 @@ Find 2 examples of maps that you think are 'bad'.
 
 ![bad map numero dos](~/R/assignment-08-KirstenFuller/code/bad_maps/bad map 2.jpeg)
 
-![bad map numero tres](~/R/assignment-08-KirstenFuller/code/bad_maps/bad map honorable mention.jpg)
-
 _Question 1_ Why are they bad? What might improve them? 
 
 _Question 2_ Rely on the Healy and Wilke texts to provide some structure to your answers.
@@ -45,6 +43,7 @@ library(cartogram)
 library(patchwork)
 library(tmap)
 library(viridis)
+library(tidyr)
 ```
 
 # LOAD DATA:
@@ -92,7 +91,8 @@ pa_reg_val_trans <- st_transform(protected_areas_val, crs = crs(mammal_raster))
 pa_desig_val_trans <- st_transform(pa_desig_val, crs = crs(mammal_raster))
 ```
 
-# CREATE SIMPLE PLOTS:
+To make sure these data are all in the correct projections, I will plot them to make sure they align.
+# CREATE SIMPLE PLOTS IN BASE R:
 ```{r plots}
 # PLOT MAMMAL RAST:
 # plot to see if the raster and the shapefile line up
@@ -140,16 +140,12 @@ pa_bind <- pa_reg_val_trans %>%
   bind_rows(pa_desig_val_trans, pa_reg_val_trans) %>%
   filter(., State_Nm %in% states, GAP_Sts %in% GAP_sts) %>%
   st_buffer(., 50000)
-```
 
-
-# Task 3: Build a map with Tmap
-Practice making a quick map with tmap. 
-
-```{r}
+# subset the western states from the tigris package
 west_states <- tigris::states(cb=TRUE) %>% 
   filter(STUSPS %in% states)
 
+# Practice making a quick map with tmap. 
 # make a plot with tmap of the states to start
 tmap::qtm(west_states, fill = "NAME") +
   tm_text("NAME")
@@ -160,19 +156,86 @@ class(pa_bind) # sf
 
 # have to convert the pa_bind sf object and the west_states to spatvectors before we are able to crop them in terra
 pa_bind_vect <- as(pa_bind, "SpatVector")
+crs(pa_bind_vect) # check the crs: USA_Contiguous_Albers_Equal_Area_Conic
+
 west_states_vect <- as(west_states, "SpatVector")
+crs(west_states_vect) # check crs: NAD83, need to project
+west_states_vect_proj <- terra::project(west_states_vect, mammal_raster)
+# check the crs again to make sure it matches
+crs(west_states_vect_proj) == crs(mammal_raster)
 
 # crop the mammal richness raster and the land value raster to the extent of the western states vector
-mam_rich_crop <- crop(mammal_ras_cat, west_states_vect)
-land_val_crop <- crop(land_val_ras_proj, west_states_vect)
+mam_rich_crop <- crop(mammal_ras_cat, west_states_vect_proj)
+land_val_crop <- crop(land_val_ras_proj, west_states_vect_proj)
+
+west_census_dat <- tidycensus:: get_acs(geography = "county", 
+                                        variables = c(medianincome = "B19013_001", pop = "B01003_001"),
+                                        state = states, 
+                                        year = 2018,
+                                        key = key,
+                                        geometry = TRUE) %>% 
+  st_transform(., crs(mammal_raster)) %>% 
+  select(-moe) %>% 
+  tidyr::spread(variable, estimate)
+
+# join the pa areas and the census data
+pa_summary <- st_join(st_as_sf(pa_bind_vect), west_census_dat, left = TRUE)
+
+# group the data by unit and then summarise by mean medianincome 
+pa_summary <- pa_summary %>% 
+  group_by(Unit_Nm) %>% 
+  summarize(., meaninc = mean(medianincome, na.rm=TRUE),
+            meanpop = mean(pop, na.rm=TRUE))
+
+# double check to see that I got the right number of rows
+nrow(pa_summary) == length(unique(pa_bind$Unit_Nm)) # TRUE
+
+# rasterize and extract data
+pa_bind_rast <- terra::rasterize(pa_bind_vect, mam_rich_crop, field = "Unit_Nm")
+
+# extract the data
+mammal_zones <- terra::zonal(mam_rich_crop, pa_bind_rast, fun = "mean", na.rm=TRUE)
+landval_zones <- terra::zonal(land_val_crop, pa_bind_rast, fun = "mean", na.rm=TRUE)
+# Note that there is one few zone than we have in our PA dataset. This is because we have an overlapping jurisdicition; we'll ignore that now but it's a common problem with using the PADUS
+
+# leftjoin all of this data together now
+summary_join <- pa_summary %>% 
+  left_join(., mammal_zones) %>%
+  left_join(., landval_zones)
+```
+
+
+# Task 3: Build a map with Tmap
+```{r}
+# start with a simple tmap plot
+tmap::tm_shape(summary_join) + # in tm_shape you define the data you want to plot
+  tm_polygons(col = "Regval",  border.col = "white") + 
+  tm_legend(outside = TRUE)
+
+# then build a more advanced tmap
+tm_shape(mam_rich_crop) +
+  tm_raster("Value", palette = viridis(n=50), n=50, legend.show=FALSE, legend.hist = FALSE) + # plots species richness values
+tm_shape(west_states) + # then plot the western states over the raster
+  tm_borders("black", lwd = .75) + # define the border color
+tm_shape(summary_join) + # add in the summarized protected area data 
+  tm_polygons(col = "meanpop", palette = "Pastel1", border.col = "black", title = "Mean Population") + # specify that you want to plot the meanpop
+  tm_legend(outside = TRUE) # address the legend here
 ```
 
 
 # Task 4: Build a choropleth with ggplot
 Your map should have a basemap, should rely on more than one aesthetic (color, transparency, etc), and combine multiple layers.
+```{r}
+
+```
+
 
 # Task 5: Build 2 cartograms
 Follow the examples to build cartograms that display your region of interest based on variables other than area.
+```{r}
+
+```
+
 
 _Question 3:_ Reflect on the different maps you've made, what do the different visualizations tell you about the data you plotted?
 
