@@ -145,28 +145,29 @@ pa_bind <- pa_reg_val_trans %>%
 west_states <- tigris::states(cb=TRUE) %>% 
   filter(STUSPS %in% states)
 
+west_states_proj <- st_transform(west_states, crs = crs(mammal_raster))
+
 # Practice making a quick map with tmap. 
 # make a plot with tmap of the states to start
-tmap::qtm(west_states, fill = "NAME") +
+tmap::qtm(west_states_proj, fill = "NAME") +
   tm_text("NAME")
 
 # check the object classes
-class(west_states) # sf
+class(west_states_proj) # sf
 class(pa_bind) # sf
 
 # have to convert the pa_bind sf object and the west_states to spatvectors before we are able to crop them in terra
 pa_bind_vect <- as(pa_bind, "SpatVector")
 crs(pa_bind_vect) # check the crs: USA_Contiguous_Albers_Equal_Area_Conic
 
-west_states_vect <- as(west_states, "SpatVector")
-crs(west_states_vect) # check crs: NAD83, need to project
-west_states_vect_proj <- terra::project(west_states_vect, mammal_raster)
+west_states_proj_vect <- as(west_states_proj, "SpatVector")
+crs(west_states_proj_vect) # check crs: USA_Contiguous_Albers_Equal_Area_Conic\
 # check the crs again to make sure it matches
-crs(west_states_vect_proj) == crs(mammal_raster)
+crs(west_states_proj_vect) == crs(mammal_raster) # TRUE
 
 # crop the mammal richness raster and the land value raster to the extent of the western states vector
-mam_rich_crop <- crop(mammal_ras_cat, west_states_vect_proj)
-land_val_crop <- crop(land_val_ras_proj, west_states_vect_proj)
+mam_rich_crop <- crop(mammal_ras_cat, west_states_proj_vect)
+land_val_crop <- crop(land_val_ras_proj, west_states_proj_vect)
 
 west_census_dat <- tidycensus:: get_acs(geography = "county", 
                                         variables = c(medianincome = "B19013_001", pop = "B01003_001"),
@@ -214,26 +215,52 @@ tmap::tm_shape(summary_join) + # in tm_shape you define the data you want to plo
 
 # then build a more advanced tmap
 tm_shape(mam_rich_crop) +
-  tm_raster("Value", palette = viridis(n=50), n=50, legend.show=FALSE, legend.hist = FALSE) + # plots species richness values
-tm_shape(west_states) + # then plot the western states over the raster
+  tm_raster("Value", palette = viridis(n=50), n=50, legend.show=FALSE) + # plots species richness values
+tm_shape(west_states_proj) + # then plot the western states over the raster
   tm_borders("black", lwd = .75) + # define the border color
 tm_shape(summary_join) + # add in the summarized protected area data 
-  tm_polygons(col = "meanpop", palette = "Pastel1", border.col = "black", title = "Mean Population") + # specify that you want to plot the meanpop
-  tm_legend(outside = TRUE) # address the legend here
+  tm_polygons(col = "meanpop", palette = "viridis", border.col = "white", title = "Mean Population") + # specify that you want to plot the meanpop
+  tm_legend(outside = TRUE)# address the legend here
 ```
 
 
 # Task 4: Build a choropleth with ggplot
 Your map should have a basemap, should rely on more than one aesthetic (color, transparency, etc), and combine multiple layers.
 ```{r}
+# get the bounding box for the western states data
+st_bbox(west_states)
+#       xmin       ymin       xmax       ymax 
+# -120.00575   31.33218 -102.04152   49.00139 
 
+# define the map as an object
+bg <- ggmap::get_map(as.vector(st_bbox(west_states)))
+
+
+# make a chloropleth with ggplot
+ggmap(bg) +
+  coord_sf(crs = st_crs(3857)) + 
+  geom_sf(data = west_states, fill = NA, color = "black", inherit.aes = FALSE) + 
+  geom_sf(data = summary_join, mapping = aes(fill = meaninc), inherit.aes = FALSE)
+
+ggmap(bg) +
+   geom_sf(data = summary_join, mapping = aes(fill = meaninc), inherit.aes = FALSE) +
+  geom_sf(data=west_states, fill=NA,color="black", inherit.aes = FALSE) +
+  coord_sf(crs = st_crs(4326))
 ```
-
 
 # Task 5: Build 2 cartograms
 Follow the examples to build cartograms that display your region of interest based on variables other than area.
 ```{r}
-
+ggmap(bg) +
+  geom_sf(data = summary_join, mapping = 
+            aes(fill = Value, alpha = (Regval - 
+                                         max(Regval, na.rm=TRUE))/(max(Regval, na.rm=TRUE)-
+                                                                     min(Regval, na.rm = TRUE))),
+          inherit.aes = FALSE) +
+  geom_sf(data=west_states, fill=NA,color="black", inherit.aes = FALSE) +
+  scale_fill_viridis(option="magma")+
+  coord_sf(crs = st_crs(4326)) +
+  theme(legend.position = "none")
 ```
 
 
