@@ -20,11 +20,12 @@ _By the end of the assignment_ you should have several static maps displaying th
 # Task 1: Show me your ugly maps!!
 Find 2 examples of maps that you think are 'bad'. 
 
-![bad map numeber one](~/R/assignment-08-KirstenFuller/code/bad_maps/bad map 1.jpg)
+![bad map number one](~/R/assignment-08-KirstenFuller/code/bad_maps/bad map honorable mention.jpg)
 
 ![bad map numero dos](~/R/assignment-08-KirstenFuller/code/bad_maps/bad map 2.jpeg)
 
 _Question 1_ Why are they bad? What might improve them? 
+The first map, which describes areas of New Jersey in silly and somewhat offensive at times ways, is mostly a joke. But it made me realize an important thing when making a maps is making them so that they are relevant and explanatory to people that are not familiar with the system. I'm from a place in New Jersey that is referred to as "pretty much Alabama" on that map. And I can attest to the farm fields and cows present there, but there are plenty of places on that map that reference things that people who aren't familiar with New Jersey wouldn't be able to understand the goofy references. There is no improving this map. The second map is bad mostly because it is too simplistic. The ranges for each color are huge, and don't give enough detail. It was strange to me that they chose to only highlight the states in the highest category and write their exact number on the map, and not also throw out some specific numbers for states in the lowest category. It seems to be biasing the reader towards noticing only the highest number rather than expressing the full picture. It would have improved the map to have more categories that were broken down into smaller ranges. It may have also improved this map for the data to be presented as a heat map without state borders.
 
 _Question 2_ Rely on the Healy and Wilke texts to provide some structure to your answers.
 
@@ -233,11 +234,10 @@ st_bbox(west_states)
 # define the map as an object
 bg <- ggmap::get_map(as.vector(st_bbox(west_states)))
 
-
 # make a simple chloropleth with ggplot
 ggmap(bg) +
-   geom_sf(data = summary_join, mapping = aes(fill = meaninc), inherit.aes = FALSE) +
-  geom_sf(data=west_states, fill=NA,color="black", inherit.aes = FALSE) +
+  geom_sf(data = summary_join, mapping = aes(fill = meaninc), inherit.aes = FALSE) +
+  geom_sf(data=west_states, fill=NA,color="black", inherit.aes = FALSE) + 
   coord_sf(crs = st_crs(4326))
 
 # make a more complicated chloropleth with ggplot
@@ -272,10 +272,10 @@ tm_shape(west_inc) + tm_polygons("medianincome", style = "jenks") +
 _Question 3:_ Reflect on the different maps you've made, what do the different visualizations tell you about the data you plotted?
 I think its really neat to plot the data kind of "formally" first, where we overlayed the population data with the base map, but then visualize it in a new way with the funky cartograms. It was neat that when we just visualize population, it is easy to still differentiate the west. Major cities like Phoenix, Las Vegas, Denver, Salt Lake are all still visible and easy to pick out of the plot. But when we plot median income, it is no longer as easy to distinguish the states of the west. 
 
-
 _Question 4:_ How might you improve the maps you've made?
-The colors could be improved upon. 
+I definitely could improve on making the data align with the basemap... I could not figure out how to do that. It's slightly off and bothering me, but its fineee. I also could do more work to get the colors to be more aesthetically pleasing, along with better more descriptive legends.
 
 _Question 5:_ Is a map the best way to evaluate the data you worked with? Why or Why not?
+I don't know if a map is the best way to evaluate the data I work with, but I do think it's a very effective way to present the data that I work with. My data is unique because the landscape I work in is unique. Owl territories aren't generally topographically separated as obviously as they are in the Grand Canyon. Explaining that to someone, even someone who is knowledgeable about birds, is challenging. A map allows me to plot locations of birds, of common hotspots for people, and to present the topography that influences the system.
 
 
