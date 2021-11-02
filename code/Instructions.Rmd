@@ -236,31 +236,39 @@ st_bbox(west_states)
 bg <- ggmap::get_map(as.vector(st_bbox(west_states)))
 
 
-# make a chloropleth with ggplot
-ggmap(bg) +
-  coord_sf(crs = st_crs(3857)) + 
-  geom_sf(data = west_states, fill = NA, color = "black", inherit.aes = FALSE) + 
-  geom_sf(data = summary_join, mapping = aes(fill = meaninc), inherit.aes = FALSE)
-
+# make a simple chloropleth with ggplot
 ggmap(bg) +
    geom_sf(data = summary_join, mapping = aes(fill = meaninc), inherit.aes = FALSE) +
   geom_sf(data=west_states, fill=NA,color="black", inherit.aes = FALSE) +
   coord_sf(crs = st_crs(4326))
+
+# make a less simple chloropleth with ggplot
+ggmap(bg) +
+  geom_sf(data = summary_join, mapping = 
+            aes(fill = Value, alpha = (Regval - 
+                                         max(Regval, na.rm = TRUE))/(max(Regval, na.rm = TRUE)-
+                                                                     min(Regval, na.rm = TRUE))),
+          inherit.aes = FALSE) +
+  geom_sf(data = west_states, fill = NA, color = "black", inherit.aes = FALSE) +
+  scale_fill_viridis(option = "magma")+
+  coord_sf(crs = st_crs(4326)) + 
+  labs(fill = "Species Richness", alpha = "Regional Land Value")
 ```
 
 # Task 5: Build 2 cartograms
 Follow the examples to build cartograms that display your region of interest based on variables other than area.
 ```{r}
-ggmap(bg) +
-  geom_sf(data = summary_join, mapping = 
-            aes(fill = Value, alpha = (Regval - 
-                                         max(Regval, na.rm=TRUE))/(max(Regval, na.rm=TRUE)-
-                                                                     min(Regval, na.rm = TRUE))),
-          inherit.aes = FALSE) +
-  geom_sf(data=west_states, fill=NA,color="black", inherit.aes = FALSE) +
-  scale_fill_viridis(option="magma")+
-  coord_sf(crs = st_crs(4326)) +
-  theme(legend.position = "none")
+west_pop <- cartogram_cont(west_census_dat, "pop", itermax = 5)
+
+west_inc <- cartogram_cont(west_census_dat, "medianincome", itermax = 5)
+
+tm_shape(west_pop) + tm_polygons("pop", style = "jenks") +
+  tm_layout(frame = FALSE, legend.position = c("left", "top"))
+
+tm_shape(west_inc) + tm_polygons("medianincome", style = "jenks") +
+  tm_layout(frame = FALSE, legend.position = c("left", "bottom"))
+
+
 ```
 
 
