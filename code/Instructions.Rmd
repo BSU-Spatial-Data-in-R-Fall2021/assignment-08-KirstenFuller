@@ -253,6 +253,7 @@ ggmap(bg) +
   labs(fill = "Species Richness", alpha = "Regional Land Value")
 ```
 
+
 # Task 5: Build 2 cartograms
 Follow the examples to build cartograms that display your region of interest based on variables other than area.
 ```{r}
@@ -269,10 +270,11 @@ tm_shape(west_inc) + tm_polygons("medianincome", style = "jenks") +
 ```
 
 _Question 3:_ Reflect on the different maps you've made, what do the different visualizations tell you about the data you plotted?
+I think its really neat to plot the data kind of "formally" first, where we overlayed the population data with the base map, but then visualize it in a new way with the funky cartograms. It was neat that when we just visualize population, it is easy to still differentiate the west. Major cities like Phoenix, Las Vegas, Denver, Salt Lake are all still visible and easy to pick out of the plot. But when we plot median income, it is no longer as easy to distinguish the states of the west. 
 
 
 _Question 4:_ How might you improve the maps you've made?
-
+The colors could be improved upon. 
 
 _Question 5:_ Is a map the best way to evaluate the data you worked with? Why or Why not?
 
