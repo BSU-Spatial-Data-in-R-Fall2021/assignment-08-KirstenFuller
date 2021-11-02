@@ -205,7 +205,6 @@ summary_join <- pa_summary %>%
   left_join(., landval_zones)
 ```
 
-
 # Task 3: Build a map with Tmap
 ```{r}
 # start with a simple tmap plot
@@ -222,7 +221,6 @@ tm_shape(summary_join) + # add in the summarized protected area data
   tm_polygons(col = "meanpop", palette = "viridis", border.col = "white", title = "Mean Population") + # specify that you want to plot the meanpop
   tm_legend(outside = TRUE)# address the legend here
 ```
-
 
 # Task 4: Build a choropleth with ggplot
 Your map should have a basemap, should rely on more than one aesthetic (color, transparency, etc), and combine multiple layers.
@@ -242,7 +240,7 @@ ggmap(bg) +
   geom_sf(data=west_states, fill=NA,color="black", inherit.aes = FALSE) +
   coord_sf(crs = st_crs(4326))
 
-# make a less simple chloropleth with ggplot
+# make a more complicated chloropleth with ggplot
 ggmap(bg) +
   geom_sf(data = summary_join, mapping = 
             aes(fill = Value, alpha = (Regval - 
@@ -259,22 +257,22 @@ ggmap(bg) +
 Follow the examples to build cartograms that display your region of interest based on variables other than area.
 ```{r}
 west_pop <- cartogram_cont(west_census_dat, "pop", itermax = 5)
-
 west_inc <- cartogram_cont(west_census_dat, "medianincome", itermax = 5)
 
+# plot population
 tm_shape(west_pop) + tm_polygons("pop", style = "jenks") +
   tm_layout(frame = FALSE, legend.position = c("left", "top"))
 
+# plot median income
 tm_shape(west_inc) + tm_polygons("medianincome", style = "jenks") +
   tm_layout(frame = FALSE, legend.position = c("left", "bottom"))
-
-
 ```
-
 
 _Question 3:_ Reflect on the different maps you've made, what do the different visualizations tell you about the data you plotted?
 
+
 _Question 4:_ How might you improve the maps you've made?
+
 
 _Question 5:_ Is a map the best way to evaluate the data you worked with? Why or Why not?
 
