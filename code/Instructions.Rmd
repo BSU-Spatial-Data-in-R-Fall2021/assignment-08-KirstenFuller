@@ -28,7 +28,7 @@ _Question 1_ Why are they bad? What might improve them?
 The first map, which describes areas of New Jersey in silly and somewhat offensive at times ways, is mostly a joke. But it made me realize an important thing when making a maps is making them so that they are relevant and explanatory to people that are not familiar with the system. I'm from a place in New Jersey that is referred to as "pretty much Alabama" on that map. And I can attest to the farm fields and cows present there, but there are plenty of places on that map that reference things that people who aren't familiar with New Jersey wouldn't be able to understand the goofy references. There is no improving this map. The second map is bad mostly because it is too simplistic. The ranges for each color are huge, and don't give enough detail. It was strange to me that they chose to only highlight the states in the highest category and write their exact number on the map, and not also throw out some specific numbers for states in the lowest category. It seems to be biasing the reader towards noticing only the highest number rather than expressing the full picture. It would have improved the map to have more categories that were broken down into smaller ranges. It may have also improved this map for the data to be presented as a heat map without state borders.
 
 _Question 2_ Rely on the Healy and Wilke texts to provide some structure to your answers.
-
+__MW: becuase you didn't push these images or knit your document I have no way of viewing these maps. You. also don't really ground your critique in any of the principles from Healy or Wilke__
 # Task 2: Load your libraries and build a dataframe
 You can choose whichever datasets you'd like from the past several months as the subject for your mapping. You'll need to use at least one tabular join, one spatial join, and one extraction to create the dataframe. Load the packages, the data, and make sure everything is projected here. Give me a sense for what you are hoping to map.
 
@@ -83,6 +83,7 @@ terra::ext(land_val_raster)
 # mammal raster is larger than the land value raster. Since we want to reproject the raster with the smaller extent, we will reproject the land value raster.
 # reproject the land value raster to match the mammal raster
 land_val_ras_proj <- project(land_val_raster, mammal_raster)
+
 
 # check to see if they match now
 crs(mammal_raster) == crs(land_val_ras_proj) # TRUE, they do match! 
@@ -278,4 +279,4 @@ I definitely could improve on making the data align with the basemap... I could 
 _Question 5:_ Is a map the best way to evaluate the data you worked with? Why or Why not?
 I don't know if a map is the best way to evaluate the data I work with, but I do think it's a very effective way to present the data that I work with. My data is unique because the landscape I work in is unique. Owl territories aren't generally topographically separated as obviously as they are in the Grand Canyon. Explaining that to someone, even someone who is knowledgeable about birds, is challenging. A map allows me to plot locations of birds, of common hotspots for people, and to present the topography that influences the system.
 
-
+_MW: Nice job. I couldn't see your bad maps because you didn't inlcude them in the file repo, but otherwise this is well-done_
